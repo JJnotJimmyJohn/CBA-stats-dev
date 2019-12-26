@@ -23,10 +23,10 @@ All CBA player stats scraped on 20191225
 
 
 ### Rating_test.py
-
+Place holder to refactor notebook into .py file
 
 ### Sina_Scrape.py
-Draft file to scrape data from Sina.com
+Place holder to refactor notebook into .py file
 
 ### Do not use below files - Sohu stats are not as complete as Sina
 
