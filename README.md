@@ -48,6 +48,6 @@ Archive folder to store past files
 
 ### Do not use below files - Sohu stats are not as complete as Sina
 
-zzDoNotUSe_Sohu_Scrape.py
-zzDoNotUSe_Sohu_automatically_get_all_rounds.ipynb
-zzDoNotUse_Sohu_get_all_data_v1.ipynb
+* zzDoNotUSe_Sohu_Scrape.py
+* zzDoNotUSe_Sohu_automatically_get_all_rounds.ipynb
+* zzDoNotUse_Sohu_get_all_data_v1.ipynb
