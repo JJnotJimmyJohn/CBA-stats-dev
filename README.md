@@ -2,8 +2,8 @@
 
 This is a project to generate advanced stats using scraped CBA stats from Sina.com, Sohu.com.
 
-## Main folder
-Main folder has all the working files and place holders
+## root directory
+All the working files and place holders are in root directory
 
 ### RatingTest_GeorgeHill.ipynb
 Notebook to test calculation of George Hill's offensive rating
@@ -17,7 +17,9 @@ Place holder to refactor notebook into .py file
 ### Sina_Scrape.py
 Place holder to refactor notebook into .py file
 
-## StatsData/
+---
+
+## "StatsData" folder
 folder to store data
 
 ### GamesSchedulePage_2019-12-28.csv
@@ -39,7 +41,9 @@ All CBA player stats scraped on 20191224
 ### Player_Stats_2019-12-25.csv
 All CBA player stats scraped on 20191225
 
-## Arvhive
+---
+
+## "Archive" folder
 Archive folder to store past files
 
 ### Do not use below files - Sohu stats are not as complete as Sina
