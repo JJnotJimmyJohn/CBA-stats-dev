@@ -2,8 +2,27 @@
 
 This is a project to generate advanced stats using scraped CBA stats from Sina.com, Sohu.com.
 
+## Main folder
+Main folder has all the working files and place holders
+
+### RatingTest_GeorgeHill.ipynb
+Notebook to test calculation of George Hill's offensive rating
+
 ### CBA_data_scrape.ipynb
 Draft file to scrape detailed game stats out of Sina.com
+
+### Rating_test.py
+Place holder to refactor notebook into .py file
+
+### Sina_Scrape.py
+Place holder to refactor notebook into .py file
+
+## StatsData/
+folder to store data
+
+### GamesSchedulePage_2019-12-28.csv
+Data scraped from http://cba.sports.sina.com.cn/cba/schedule/all/?qleagueid=205&qmonth=&qteamid= on 20191228
+Containing schedule info and links to games' detailed stats
 
 ### GeorgeHill_testdata_20191225.csv
 GeorgeHill's stats until 20191224. Used to validate my calculation of offensive rating
@@ -14,19 +33,14 @@ Bucks stats until 20191224. Used to validate my calculation of offensive rating
 ### Opponent_stats.csv	
 Buck opponents stats until 20191224. Used to validate my calculation of offensive rating
 
-
 ### Player_Stats_2019-12-24.csv	
 All CBA player stats scraped on 20191224
 
 ### Player_Stats_2019-12-25.csv
 All CBA player stats scraped on 20191225
 
-
-### Rating_test.py
-Place holder to refactor notebook into .py file
-
-### Sina_Scrape.py
-Place holder to refactor notebook into .py file
+## Arvhive
+Archive folder to store past files
 
 ### Do not use below files - Sohu stats are not as complete as Sina
 
