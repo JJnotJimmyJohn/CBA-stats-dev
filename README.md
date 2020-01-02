@@ -5,6 +5,11 @@ This is a project to generate advanced stats using scraped CBA stats from Sina.c
 ## root directory
 All the working files and place holders are in root directory
 
+### All_Game_Stats_Processing.ipynb
+Notebook to process scraped detailed stats for each game. Can get teams, opponents, players stats.
+Todo:
+* Get player ID, player position (consider minutes played)
+
 ### RatingTest_GeorgeHill.ipynb
 Notebook to test calculation of George Hill's offensive rating
 
