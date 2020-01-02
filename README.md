@@ -27,6 +27,9 @@ Place holder to refactor notebook into .py file
 ## "StatsData" folder
 folder to store data
 
+### All_Games_Stats_.csv
+All the detailed stats scraped from links in column '统计_link' in GamesSchedulePage_2019-12-28.csv
+
 ### GamesSchedulePage_2019-12-28.csv
 Data scraped from http://cba.sports.sina.com.cn/cba/schedule/all/?qleagueid=205&qmonth=&qteamid= on 20191228
 Containing schedule info and links to games' detailed stats
