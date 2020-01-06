@@ -1,7 +1,6 @@
 from CBAStats.BBallEntity import *
 
-# todo: convert total_stats and something else to arrays, then convert back to df
-# todo: all the output should be pandas dataframe
+# todo: develop op_plr (player same position, watch there will be starter and sub)
 
 
 class Player(BBallEntity):
@@ -31,14 +30,13 @@ class Player(BBallEntity):
 
     @property
     def plr_total_stats(self):
-        return self.plr_raw_stats.groupby(['球员', '号码']).sum().reset_index()
+        total_stats = self.plr_raw_stats.sum(numeric_only = True)
+        return total_stats
 
     @property
     def plr_avg_stats(self):
         # only calculates appearance
-        all_games = self.plr_raw_stats.loc[self.plr_raw_stats['出场'] == 1]
-        avg_stats = all_games.groupby(['球员', '号码']).sum().reset_index()
-        return avg_stats
+        return self.plr_total_stats/self.plr_total_stats['出场']
 
     @property
     def tm_raw_stats(self):
@@ -84,10 +82,9 @@ def main():
         exit()
     else:
         print(f'{player.plr_name},{player.plr_tm_name}')
-        # stats_output(player.tm_total_stats)
-        # print(player.tm_avg_stats)
-        # print(player.op_m_avg_stats)
-        print(player.tm_total_stats)
+        stats_output(player.plr_total_stats)
+        stats_output(player.plr_avg_stats)
+
 
 
 if __name__ == '__main__':
