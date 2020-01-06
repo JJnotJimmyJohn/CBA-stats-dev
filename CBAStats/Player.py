@@ -1,11 +1,11 @@
-from CBAStats.BBallEntity import *
+from CBAStats.GameStats import *
 
 # todo: develop op_plr (player same position, watch there will be starter and sub)
 
 
-class Player(BBallEntity):
+class Player(GameStats):
     def __init__(self, name):
-        BBallEntity.__init__(self)
+        GameStats.__init__(self)
         self.__name = name
         pass
 
@@ -20,7 +20,7 @@ class Player(BBallEntity):
 
     @property
     def plr_raw_stats(self):
-        raw_stats = self._BBallEntity__raw_stats.loc[self._BBallEntity__raw_stats['球员'] == self.__name, :].copy()
+        raw_stats = self._GameStats__raw_stats.loc[self._GameStats__raw_stats['球员'] == self.__name, :].copy()
         if raw_stats.empty:
             print('No such Player. Please check name entered.')
             exit()
@@ -44,7 +44,7 @@ class Player(BBallEntity):
         # player can be traded in the future
         # use df to filter games
         filter_df = self.plr_raw_stats[['Game_ID','球队']].copy().drop_duplicates()
-        raw_stats = self._BBallEntity__raw_stats.copy()
+        raw_stats = self._GameStats__raw_stats.copy()
         return raw_stats.merge(filter_df, on=['Game_ID', '球队'])
 
     @property
@@ -62,7 +62,7 @@ class Player(BBallEntity):
         # player can be traded in the future
         # use df to filter games
         filter_df = self.plr_raw_stats[['Game_ID','对手']].copy().drop_duplicates()
-        raw_stats = self._BBallEntity__raw_stats.copy()
+        raw_stats = self._GameStats__raw_stats.copy()
         return raw_stats.merge(filter_df,left_on=['Game_ID','球队'],right_on=['Game_ID','对手'])
 
     @property

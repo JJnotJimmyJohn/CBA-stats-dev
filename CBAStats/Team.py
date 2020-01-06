@@ -1,54 +1,61 @@
-from CBAStats.BBallEntity import *
+from CBAStats.GameStats import *
 
 
-class Team(BBallEntity):
+class Team(GameStats):
     def __init__(self, name):
-        BBallEntity.__init__(self)
+        GameStats.__init__(self)
         self.__name = name
         pass
 
-    # -------- universal stats below --------
+    # -------- universal stats below (all are pd.DataFrame)--------
     @property
     def tm_name(self):
-        return self.tm_raw_stats['球队'].unique()[0]
+        if self.__name:
+            return self.tm_raw_stats['球队'].unique()[0]
+        else:
+            return '所有队伍'
 
     @property
     def tm_raw_stats(self):
-        raw_stats = self._BBallEntity__raw_stats.loc[self._BBallEntity__raw_stats['球队'] == self.__name, :].copy()
-        if raw_stats.empty:
-            print('No such team. Please check name entered.')
+        # raw_stats = self._GameStats__raw_stats.copy()
+        raw_stats = GameStats().all_games_stats
+        teams = raw_stats.groupby(['球队', 'Game_ID']).sum().rename(columns={'首发': '场次'})
+        teams['场次'] = teams['场次'] / 5
+        teams = teams.reset_index()
+        oppteams = raw_stats.groupby(['对手', 'Game_ID']).sum().rename(columns={'首发': '场次'})
+        oppteams['场次'] = oppteams['场次'] / 5
+        oppteams = oppteams.add_prefix('对方')
+        oppteams = oppteams.reset_index()
+        merged_stats = pd.merge(teams, oppteams, left_on=['球队', 'Game_ID'], right_on=['对手', 'Game_ID'])
+        merged_stats = merged_stats.set_index('球队')
+        if self.__name:
+            merged_stats = merged_stats.loc[self.__name]
+        else:
+            pass
+        if merged_stats.empty:
+            print('No data. Please check name entered.')
             exit()
-        return raw_stats
+        return merged_stats
 
     @property
     def tm_total_stats(self):
-        return self.tm_raw_stats.sum(numeric_only=True)
+        raw_stats = self.tm_raw_stats.groupby(['球队']).sum()
+        return raw_stats
 
     @property
     def tm_avg_stats(self):
-        return self.tm_total_stats / (self.tm_total_stats['首发'] / 5)
-
-    @property
-    def op_tm_raw_stats(self):
-        # get game stats using game_ID and team names instead of only team names in case
-        # player can be traded in the future
-        # use df to filter games
-        filter_df = self.tm_raw_stats[['Game_ID', '对手']].copy().drop_duplicates()
-        raw_stats = self._BBallEntity__raw_stats.copy()
-        return raw_stats.merge(filter_df, left_on=['Game_ID', '球队'], right_on=['Game_ID', '对手'])
-
-    @property
-    def op_tm_total_stats(self):
-        op_tm_total_stats = self.op_tm_raw_stats.sum(numeric_only=True)
-        return op_tm_total_stats
-
-    @property
-    def op_tm_avg_stats(self):
-        return self.op_tm_total_stats / (self.op_tm_total_stats['首发'] / 5)
-
+        return self.tm_total_stats.div(self.tm_total_stats['场次'],axis=0)
     # -------- universal stats above --------
 
-    # -------- singel stats below --------
+    # -------- singel stats below (all are pd.series)--------
+    @property
+    def tm_ngames(self):
+        return self.tm_total_stats['场次']
+
+    @property
+    def tm_pts(self):
+        return self.tm_total_stats['得分']
+
     @property
     def tm_fga(self):
         return self.tm_total_stats['2分投'] + self.tm_total_stats['3分投']
@@ -67,7 +74,7 @@ class Team(BBallEntity):
 
     @property
     def op_tm_drb(self):
-        return self.op_tm_total_stats['防守篮板']
+        return self.tm_total_stats['对方防守篮板']
 
     @property
     def tm_fg(self):
@@ -79,11 +86,11 @@ class Team(BBallEntity):
 
     @property
     def op_tm_fga(self):
-        return self.op_tm_total_stats['2分投'] + self.op_tm_total_stats['3分投']
+        return self.tm_total_stats['对方2分投'] + self.tm_total_stats['对方3分投']
 
     @property
     def op_tm_fta(self):
-        return self.op_tm_total_stats['罚球投']
+        return self.tm_total_stats['对方罚球投']
 
     @property
     def tm_drb(self):
@@ -91,15 +98,26 @@ class Team(BBallEntity):
 
     @property
     def op_tm_fg(self):
-        return self.op_tm_total_stats['2分中'] + self.tm_total_stats['3分中']
+        return self.tm_total_stats['对方2分中'] + self.tm_total_stats['对方3分中']
 
     @property
     def op_tm_tov(self):
-        return self.op_tm_total_stats['失误']
+        return self.tm_total_stats['对方失误']
 
     @property
     def op_tm_orb(self):
-        return self.op_tm_total_stats['进攻篮板']
+        return self.tm_total_stats['对方进攻篮板']
+
+    @property
+    def op_tm_pts(self):
+        return self.tm_total_stats['对方得分']
+
+    # -------- singel stats above (all are pd.series)--------
+
+    # -------- advanced stats below (all are pd.series)--------
+    @property
+    def mov(self):
+        return (self.tm_pts-self.op_tm_pts)/self.tm_ngames
 
     @property
     def tm_poss(self):
@@ -118,7 +136,7 @@ class Team(BBallEntity):
     def op_tm_poss(self):
         return 0.5 * (
                 (self.op_tm_fga + 0.4 * self.op_tm_fta -
-                 1.07 * (self.op_tm_orb / (self.op_tm_orb + self.tm_drb)) * (self.op_tm_fga - self.tm_fg) +
+                 1.07 * (self.op_tm_orb / (self.op_tm_orb + self.tm_drb)) * (self.op_tm_fga - self.op_tm_fg) +
                  self.op_tm_tov
                  ) + (
                         self.tm_fga +
@@ -128,27 +146,29 @@ class Team(BBallEntity):
         )
 
     @property
+    def tm_poss_per_g(self):
+        return self.tm_poss/self.tm_ngames
+
+    @property
     def tm_pace(self):
         return 48 * ((self.tm_poss + self.op_tm_poss) / (2 * (self.tm_mp / 5)))
 
+    @property
+    def tm_ortg(self):
+        return self.tm_pts/self.tm_poss*100
 
+    @property
+    def tm_drtg(self):
+        return self.op_tm_pts/self.op_tm_poss*100
 
+    @property
+    def tm_nrtg(self):
+        return (self.tm_ortg-self.tm_drtg)
 
-
-
+    # -------- advanced stats above (all are pd.series)--------
 
 def main():
-    jilin = Team('广东')
-    if jilin.tm_raw_stats.empty:
-        print(f'{jilin.tm_name}无数据')
-        exit()
-    else:
-        print(f'{jilin.tm_name}队')
-        # stats_output(jilin.op_tm_total_stats)
-        print(jilin.tm_poss)
-        print(jilin.op_tm_poss)
-        print(jilin.tm_pace)
-
+    pass
 
 if __name__ == '__main__':
     main()

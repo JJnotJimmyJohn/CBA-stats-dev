@@ -1,1 +1,1 @@
-__all__ = ['Player', 'Team', 'BBallEntity']
+__all__ = ['Player', 'Team', 'GameStats']
