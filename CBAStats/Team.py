@@ -22,14 +22,16 @@ class Team(GameStats):
         teams = raw_stats.groupby(['球队', 'Game_ID']).sum().rename(columns={'首发': '场次'})
         teams['场次'] = teams['场次'] / 5
         teams = teams.reset_index()
+
         oppteams = raw_stats.groupby(['对手', 'Game_ID']).sum().rename(columns={'首发': '场次'})
         oppteams['场次'] = oppteams['场次'] / 5
         oppteams = oppteams.add_prefix('对方')
         oppteams = oppteams.reset_index()
+
         merged_stats = pd.merge(teams, oppteams, left_on=['球队', 'Game_ID'], right_on=['对手', 'Game_ID'])
         merged_stats = merged_stats.set_index('球队')
         if self.__name:
-            merged_stats = merged_stats.loc[self.__name]
+            merged_stats = merged_stats.loc[self.__name].copy()
         else:
             pass
         if merged_stats.empty:
@@ -112,7 +114,7 @@ class Team(GameStats):
     def op_tm_pts(self):
         return self.tm_total_stats['对方得分']
 
-    # -------- singel stats above (all are pd.series)--------
+    # -------- single stats above (all are pd.series)--------
 
     # -------- advanced stats below (all are pd.series)--------
     @property
