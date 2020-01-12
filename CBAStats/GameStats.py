@@ -22,7 +22,7 @@ class GameStats(object):
         self.__raw_stats = self.__games_stats()
 
     @staticmethod
-    def __games_stats(path=r'~/Documents/CBA_Stats/StatsData/All_Games_Stats_2020-01-05.csv'):
+    def __games_stats(path=r'~/Documents/CBA_Stats/StatsData/All_Games_Stats_2020-01-11.csv'):
         games_stats = pd.read_csv(path, encoding='UTF-8',
                                   dtype={'Game_ID': object, '号码': object})
         # as of 2020-01-01, 10 is 田宇恒

@@ -15,13 +15,20 @@ import datetime
 # print(yijianlian.tm_mp)
 # print((yijianlian.plr_qast))
 
-players = Player('易建联')
-
+players = Player('蒋浩然')
+print(players.plr_raw_stats)
+print(players.plr_ortg)
+# print(players.plr_qast)
 # print(players.tm_poss)
-print(players.total_stats.columns)
-print(players.plr_totposs)
+# print(players.total_stats)
+# print(players.plr_totposs)
+# print(players.plr_pprod)
+# print(players.plr_ortg)
+# players_ortg = players.plr_ortg
+# ortg_df = pd.DataFrame(players_ortg,columns=['OffensiveRating'])
+# ortg_df.sort_values(by='OffensiveRating').to_html('PlayersOrtg.html')
 # print((players.plr_mp / (players.tm_mp / 5)))
-#
+
 # guangdong = Team('广东')
 # print(guangdong.tm_poss)
 
@@ -30,8 +37,8 @@ print(players.plr_totposs)
 # teams = Team('')
 # stats_output(teams.tm_pace)
 # stats_output(teams.tm_poss_per_g)
-# stats_output(teams.tm_ortg)
-# stats_output(teams.tm_drtg)
+# stats_output(guangdong.tm_ortg)
+# stats_output(guangdong.tm_drtg)
 # stats_output(teams.tm_nrtg)
 # stats_output(teams.mov)
 
