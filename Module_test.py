@@ -15,9 +15,9 @@ import datetime
 # print(yijianlian.tm_mp)
 # print((yijianlian.plr_qast))
 
-players = Player('蒋浩然')
-print(players.plr_raw_stats)
-print(players.plr_ortg)
+# players = Player('蒋浩然')
+# print(players.plr_raw_stats)
+# print(players.plr_ortg)
 # print(players.plr_qast)
 # print(players.tm_poss)
 # print(players.total_stats)
@@ -49,3 +49,8 @@ print(players.plr_ortg)
 # stats_output(df.head())
 # # df.to_csv(f'~/Documents/CBA_Stats/StatsData/team_rating_{datetime.date.today()}.csv',float_format='%.1f')
 # df.to_html('test.html')
+
+from Scraping import Scraper
+
+Scraper.scrape_sina_schedule(output_path=r'StatsData/schedule_data.csv')
+Scraper.scrape_game_details(input_file=r'StatsData/schedule_data.csv',output_file=r'StatsData/All_games_data.csv')
