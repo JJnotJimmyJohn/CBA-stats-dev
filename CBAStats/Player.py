@@ -5,8 +5,8 @@ from CBAStats.GameStats import *
 
 
 class Player(GameStats):
-    def __init__(self, name):
-        GameStats.__init__(self)
+    def __init__(self, name,df):
+        GameStats.__init__(self,df)
         self.__name = name
         pass
 
@@ -29,7 +29,7 @@ class Player(GameStats):
         """
         球员的每场比赛数据统计；一场比赛对应一行数据。
         """
-        raw_stats = GameStats().all_games_stats
+        raw_stats = self.all_games_stats
         if self.__name:
             raw_stats = raw_stats.loc[raw_stats['球员'] == self.__name, :].copy()
         else:
@@ -46,7 +46,7 @@ class Player(GameStats):
         """
         本方球队和对方球队每场数据统计；一场比赛对应一行数据。
         """
-        raw_stats = GameStats().all_games_stats
+        raw_stats = self.all_games_stats
         raw_stats = raw_stats.groupby(['Game_ID', '球队', '对手']).sum().reset_index()
         raw_stats['场次'] = raw_stats['首发'] / 5
         raw_stats.drop(columns=['首发'], inplace=True)

@@ -1,7 +1,26 @@
 from CBAStats.Player import *
 from CBAStats.Team import *
-from CBAStats.Player import stats_output
+from CBAStats.GameStats import stats_output
+from CBAStats.GameStats import GameStats
 import datetime
+
+stats = GameStats.from_csv('StatsData/All_Games_Stats_2020-01-17.csv')
+# print(stats.head())
+#
+# stats1 = GameStats(stats.all_games_stats)
+# print(stats1.head())
+
+# stats2 = Team.from_csv('StatsData/All_Games_Stats_2020-01-17.csv')
+# print(stats2.head())
+
+# stats3 = Team('',stats.all_games_stats)
+# print(stats3)
+
+stats4 = Player('易建联',stats.all_games_stats)
+print(stats4.plr_raw_stats)
+
+# change .all_games_stats to .df
+
 
 # yijianlian = Player('易建联')
 # stats_output(yijianlian.plr_raw_stats.head())
@@ -49,8 +68,8 @@ import datetime
 # stats_output(df.head())
 # # df.to_csv(f'~/Documents/CBA_Stats/StatsData/team_rating_{datetime.date.today()}.csv',float_format='%.1f')
 # df.to_html('test.html')
-
-from Scraping import Scraper
-
-Scraper.scrape_sina_schedule(output_path=r'StatsData/schedule_data.csv')
-Scraper.scrape_game_details(input_file=r'StatsData/schedule_data.csv',output_file=r'StatsData/All_games_data.csv')
+#
+# from Scraping import Scraper
+#
+# Scraper.scrape_sina_schedule(output_path=r'StatsData/schedule_data.csv')
+# Scraper.scrape_game_details(input_file=r'StatsData/schedule_data.csv',output_file=r'StatsData/All_games_data.csv')

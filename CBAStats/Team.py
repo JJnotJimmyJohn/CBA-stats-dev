@@ -2,8 +2,8 @@ from CBAStats.GameStats import *
 
 
 class Team(GameStats):
-    def __init__(self, name):
-        GameStats.__init__(self)
+    def __init__(self, name, df):
+        GameStats.__init__(self,df)
         self.__name = name
         pass
 
@@ -18,7 +18,7 @@ class Team(GameStats):
     @property
     def tm_raw_stats(self):
         # raw_stats = self._GameStats__raw_stats.copy()
-        raw_stats = GameStats().all_games_stats
+        raw_stats = self.all_games_stats
         teams = raw_stats.groupby(['球队', 'Game_ID']).sum().rename(columns={'首发': '场次'})
         teams['场次'] = teams['场次'] / 5
         teams = teams.reset_index()

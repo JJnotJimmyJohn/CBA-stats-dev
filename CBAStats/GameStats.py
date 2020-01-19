@@ -14,21 +14,34 @@ def stats_output(data):
         print("----------Your data is a pandas dataframe----------")
     else:
         print(tabulate(data, tablefmt='psql'))
-        print('----------You data is not a series or dataframe. Output may not reflect the true data structure----------')
+        print(
+            '----------You data is not a series or dataframe. Output may not reflect the true data structure----------')
 
 
 class GameStats(object):
-    def __init__(self):
-        self.__raw_stats = self.__games_stats()
+    """
+    GameStats can be initialized by a dataframe or use 'from_csv' method to initialize from a csv file.
+    """
+    def __init__(self, df):
+        self.__raw_stats = df
 
-    @staticmethod
-    def __games_stats(path=r'~/Documents/CBA_Stats/StatsData/All_Games_Stats_2020-01-11.csv'):
+    def __repr__(self):
+        return 'Please use "all_games_stats" property to check all raw stats.'
+
+    def __str__(self):
+        return str(self.__raw_stats)
+
+    @classmethod
+    def from_csv(cls, path):
         games_stats = pd.read_csv(path, encoding='UTF-8',
                                   dtype={'Game_ID': object, '号码': object})
         # as of 2020-01-01, 10 is 田宇恒
         games_stats.loc[games_stats['球员'] == '10', '球员'] = '田宇恒'
-        return games_stats
+        return GameStats(games_stats)
 
     @property
     def all_games_stats(self):
         return self.__raw_stats
+
+    def head(self):
+        return self.__raw_stats.head()
