@@ -70,11 +70,11 @@ class Player(GameStats):
         raw_stats = pd.merge(self.plr_raw_stats, self.tm_raw_stats, left_on=['Game_ID', '球队']
                              , right_on=['本方Game_ID', '本方球队'])
         return raw_stats
-
+#######################################################################################################
     @property
     def plr_total_stats(self):
         """球员总数据统计，每个球员对应一行数据"""
-        return self.plr_raw_stats.groupby('球员').sum()
+        return self.plr_raw_stats.groupby(['球员','球队']).sum(numeric_only=True)
 
     @property
     def plr_avg_stats(self):

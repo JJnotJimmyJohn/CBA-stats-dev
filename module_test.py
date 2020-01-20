@@ -16,8 +16,8 @@ stats = GameStats.from_csv('StatsData/All_Games_Stats_2020-01-17.csv')
 # stats3 = Team('',stats.all_games_stats)
 # print(stats3)
 
-stats4 = Player('易建联',stats.all_games_stats)
-print(stats4.plr_raw_stats)
+stats4 = Player('易建联', stats.all_games_stats)
+print(stats4.plr_total_stats)
 
 # change .all_games_stats to .df
 

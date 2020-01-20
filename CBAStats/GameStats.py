@@ -23,6 +23,7 @@ class GameStats(object):
     GameStats can be initialized by a dataframe or use 'from_csv' method to initialize from a csv file.
     """
     def __init__(self, df):
+        df.loc[df['球员'] == '10', '球员'] = '田宇恒'
         self.__raw_stats = df
 
     def __repr__(self):
