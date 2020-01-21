@@ -4,7 +4,26 @@ from CBAStats.GameStats import stats_output
 from CBAStats.GameStats import GameStats
 import datetime
 
-stats = GameStats.from_csv('StatsData/All_Games_Stats_2020-01-17.csv')
+
+df = pd.read_csv('StatsData/All_Games_Stats_2020-01-20.csv')
+# xinjiang = Team('新疆',df)
+# stats_output(xinjiang.tm_total_stats[['2分中','2分投','3分中','3分投']])
+#
+#
+# guangdong = Team('广东',df)
+# stats_output(guangdong.tm_total_stats[['2分中','2分投','3分中','3分投']])
+#
+# suoyou = Team('',df)
+# stats_output(suoyou.tm_total_stats[['2分中','2分投','3分中','3分投']].sum())
+
+stats4 = Player('易建联', df)
+stats_output(stats4.plr_total_stats[['2分中','2分投','3分中','3分投']])
+
+
+stats4 = Player('周琦', df)
+stats_output(stats4.plr_total_stats[['2分中','2分投','3分中','3分投']])
+
+# stats = GameStats.from_csv('StatsData/All_Games_Stats_2020-01-17.csv')
 # print(stats.head())
 #
 # stats1 = GameStats(stats.all_games_stats)
@@ -16,8 +35,8 @@ stats = GameStats.from_csv('StatsData/All_Games_Stats_2020-01-17.csv')
 # stats3 = Team('',stats.all_games_stats)
 # print(stats3)
 
-stats4 = Player('易建联', stats.all_games_stats)
-print(stats4.plr_total_stats)
+# stats4 = Player('易建联', stats.all_games_stats)
+# print(stats4.plr_total_stats)
 
 # change .all_games_stats to .df
 
