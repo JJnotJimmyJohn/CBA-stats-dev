@@ -196,7 +196,7 @@ def scrape_game_details(input_file, output_file):
         print('抓取比赛 ', row['UID'], ' ', row['主队'], ' ', row['客队'], ' ', datetime.datetime.now())
 
         # pause for a few seconds to avoid getting banned
-        time.sleep(np.random.rand() * 5)
+        time.sleep(np.random.rand() * 3)
     games_stats = pd.concat(df_list, ignore_index=True)
     # remove team stats
     if 2 * len(games_stats['Game_ID'].unique()) == len(games_stats.loc[games_stats['号码'] == '--']):
@@ -204,4 +204,4 @@ def scrape_game_details(input_file, output_file):
 
     games_stats = split_made_attempt(games_stats)
     print(f'各场比赛详细数据保存在{output_file}')
-    games_stats.to_csv(output_file, encoding='UTF-8', index=False)
+    games_stats.to_csv(output_file, encoding='utf-8-sig', index=False)
