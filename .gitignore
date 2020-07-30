@@ -1,10 +1,13 @@
+*.csv
+*.xlsx
+*.txt
+*.xls
 /.ipynb_checkpoints/
 /zzzTemp
 CBAStats/__pycache__/
 Scraping/__pycache__/
 Scraping/.ipynb_checkpoints/
 StatsData/.ipynb_checkpoints
-/AdhocAnalysis
 # /Archive
 # Byte-compiled / optimized / DLL files
 __pycache__/
