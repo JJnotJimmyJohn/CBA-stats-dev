@@ -68,7 +68,7 @@ def scrape_sina_schedule(output_path,base_url=r"http://cba.sports.sina.com.cn/cb
     uid_column = ['20192020' + f'{item + 1:05d}' for item in pd.factorize(df_schedule_full['统计_link'])[0].tolist()]
     df_schedule_full['UID'] = uid_column
     # 从轮次中提取出数字
-    df_schedule_full['轮次'] = df_schedule_full['轮次'].apply(lambda x: int(re.findall('(\d+)', x)[0]))
+    # df_schedule_full['轮次'] = df_schedule_full['轮次'].apply(lambda x: int(re.findall('(\d+)', x)[0]))
     print(f'所有赛程、数据统计链接将会存在 {output_path}.')
     df_schedule_full.to_csv(output_path, index=False)
     print(f'所有赛程、数据统计链接已保存在 {output_path}.')
