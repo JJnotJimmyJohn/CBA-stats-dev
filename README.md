@@ -6,7 +6,7 @@ This is a project to generate advanced stats using scraped CBA stats from Sina.c
 
 To display some of the stats, run main.ipynb https://github.com/JJnotJimmyJohn/CBA-stats/blob/master/main.ipynb
 
-To update the data in MySQL database, please run Scraping/Scrape&Update.ipynb https://github.com/JJnotJimmyJohn/CBA-stats/blob/master/main.ipynb
+To update the data in MySQL database, please run Scraping/Scrape&Update.ipynb https://github.com/JJnotJimmyJohn/CBA-stats/blob/master/Scraping/Scrape%26Update.ipynb
 
 Scraper is in /Scraping
 
