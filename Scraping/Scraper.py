@@ -205,6 +205,3 @@ def scrape_game_details(input_file, output_file):
     games_stats = split_made_attempt(games_stats)
     print(f'各场比赛详细数据保存在{output_file}')
     games_stats.to_csv(output_file, encoding='utf-8-sig', index=False)
-
-if __name__ == "__main__":
-    print("running main")
