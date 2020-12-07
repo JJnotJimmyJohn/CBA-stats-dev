@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from types import ClassMethodDescriptorType
 from sqlalchemy import create_engine
 from sqlalchemy.exc import ResourceClosedError
 import pymysql
@@ -59,13 +60,61 @@ class Scraper(object):
         response.encoding = encoding
         page_content = BeautifulSoup(response.content, parser)
         return page_content
+    
+    @classmethod
+    def create_db_engine(cls, user_name, passcode, endpoint, database=None):
+        """
+        创建一个database connection，用来execute query
+        """
+        if database:
+            engine = create_engine(
+                f'mysql+pymysql://{user_name}:{passcode}@{endpoint}/{database}')
+        else:
+            engine = create_engine(
+                f'mysql+pymysql://{user_name}:{passcode}@{endpoint}')
+
+        return engine
+
+    @classmethod
+    def run_query_db(cls, sql_str) -> pd.DataFrame:
+        """
+        对数据库进行查询
+        """
+        with cls.create_db_engine(DB_USERNAME, DB_PWD, DB_ENDPOINT).connect() as connection:
+            df = pd.read_sql(sql_str, connection)
+            return df
+        # print(connection.closed)
+
+    @classmethod
+    def append_df_to_table(cls, df_to_append, database_name, table_name) -> pd.DataFrame:
+        """
+        将dataframe append到现存的表中
+        """
+        with cls.create_db_engine(DB_USERNAME, DB_PWD, DB_ENDPOINT, database_name).connect() as connection:
+            with connection.begin() as transaction:
+                df_to_append.to_sql(
+                    name=f'{table_name}', con=connection, index=False, if_exists='append')
+                transaction.commit()
+        # print(connection.closed)
+        print('Operation complete. Success is not garanteed. Check row count to verify.')
+
+    @classmethod
+    def insert_df_into_db(cls, df_to_insert, database_name, table_name) -> pd.DataFrame:
+        """
+        将dataframe insert到database中as a new table，如果table已存在，则用新table替换旧table
+        """
+        with cls.create_db_engine(DB_USERNAME, DB_PWD, DB_ENDPOINT, database_name).connect() as connection:
+            with connection.begin() as transaction:
+                df_to_insert.to_sql(
+                    name=f'{table_name}', con=connection, index=False, if_exists='replace')
+                transaction.commit()
+        # print(connection.closed)
+        print('Operation complete. Success is not garanteed. Check query to verify.')
 
 
 class SinaScraper(Scraper):
     """
     Class for scraping data from sina CBA
-
-    
     """
 
     def __init__(self, base_url, encoding, parser, headers):
@@ -200,52 +249,6 @@ class SinaScraper(Scraper):
         df_schedule_full['日期'] = pd.to_datetime(df_schedule_full['日期'])
 
         return df_schedule_full
-
-    def create_db_engine(self, user_name, passcode, endpoint, database=None):
-        """
-        创建一个database connection，用来execute query
-        """
-        if database:
-            engine = create_engine(
-                f'mysql+pymysql://{user_name}:{passcode}@{endpoint}/{database}')
-        else:
-            engine = create_engine(
-                f'mysql+pymysql://{user_name}:{passcode}@{endpoint}')
-
-        return engine
-
-    def run_query_db(self, sql_str) -> pd.DataFrame:
-        """
-        对数据库进行查询
-        """
-        with self.create_db_engine(DB_USERNAME, DB_PWD, DB_ENDPOINT).connect() as connection:
-            df = pd.read_sql(sql_str, connection)
-            return df
-        # print(connection.closed)
-
-    def append_df_to_table(self, df_to_append, database_name, table_name) -> pd.DataFrame:
-        """
-        将dataframe append到现存的表中
-        """
-        with self.create_db_engine(DB_USERNAME, DB_PWD, DB_ENDPOINT, database_name).connect() as connection:
-            with connection.begin() as transaction:
-                df_to_append.to_sql(
-                    name=f'{table_name}', con=connection, index=False, if_exists='append')
-                transaction.commit()
-        # print(connection.closed)
-        print('Operation complete. Success is not garanteed. Check row count to verify.')
-
-    def insert_df_into_db(self, df_to_insert, database_name, table_name) -> pd.DataFrame:
-        """
-        将dataframe insert到database中as a new table，如果table已存在，则用新table替换旧table
-        """
-        with self.create_db_engine(DB_USERNAME, DB_PWD, DB_ENDPOINT, database_name).connect() as connection:
-            with connection.begin() as transaction:
-                df_to_insert.to_sql(
-                    name=f'{table_name}', con=connection, index=False, if_exists='replace')
-                transaction.commit()
-        # print(connection.closed)
-        print('Operation complete. Success is not garanteed. Check query to verify.')
 
     def query_schedule(self):
         """
@@ -461,7 +464,7 @@ class SinaScraper(Scraper):
         print('-'*40)
         self.clean_staging_schedule()
         # check CBA_Staging.schedules
-        print('Pulling schedule to scape from CBA_Staging.Schedules')
+        print('Pulling schedule from CBA_Staging.Schedules')
         print('-'*40)
         schedule_to_scrape = self.query_stg_schedule()
         # scrape stats for each game
@@ -482,6 +485,8 @@ class SinaScraper(Scraper):
 if __name__ == "__main__":
     print('executing')
     # sys.exit()
+
+    ##### testing SinaScraper #####
     sina_scraper = SinaScraper(
         SINA_SCHEDULE_BASE_URL, ENCODING, PARSER, HEADERS)
     sina_scraper.scrape_sina(season='20-21')
