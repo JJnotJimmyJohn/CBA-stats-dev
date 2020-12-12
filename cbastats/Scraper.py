@@ -490,7 +490,6 @@ if __name__ == "__main__":
     sina_scraper = SinaScraper(
         SINA_SCHEDULE_BASE_URL, ENCODING, PARSER, HEADERS)
     sina_scraper.scrape_sina(season='20-21')
-
     ##### testing params #####
     # for key in sina_scraper.scrape_params:
     #     print(key)
