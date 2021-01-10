@@ -1,20 +1,19 @@
-import sys
-from pathlib import Path
-from types import ClassMethodDescriptorType
-from pymongo.errors import BulkWriteError
-import requests
-from bs4 import BeautifulSoup
+# import sys
+# from pathlib import Path
+# import requests
+# from bs4 import BeautifulSoup
 # import lxml.html as lh
-import pandas as pd
-import datetime
-import numpy as np
-import re
-import time
-from pathlib import Path
-from dotenv import load_dotenv
+# import pandas as pd
+# import datetime
+# import re
+# import time
+# import numpy as np
+from logging import raiseExceptions
 import os
-from tqdm import tqdm
+from pathlib import Path
 import pymongo
+from dotenv import load_dotenv
+from tqdm import tqdm
 
 # TODO: use argparse
 DOTENV_PATH = '.'
@@ -59,8 +58,9 @@ class DBHelper(object):
 
 class MongoDBHelper(DBHelper):
     """
-    docstring
+    Just a bunch of helper functions for MongoDB database I/O
     """
+    # TODO: maybe it's better to create client in init??
     def __init__(self):
         """
         placeholder for init
@@ -91,29 +91,81 @@ class MongoDBHelper(DBHelper):
             foundIDs.append(foundDoc['GameID_Sina'])
         
         return {'InDB':list(set(foundIDs)&set(gameids)),'NotInDB':list(set(foundIDs)^set(gameids))}
+    # TODO: use decorator
+    # def insert_hint(insert_func):
+    #     def wrapper_func(self,records,collection):
+    #         results = insert_func(self,records,collection)
+    #         if results.acknowledged:
+    #             print(f'{collection.name} operation acknowledged!')
+    #             print(f"{len(results.inserted_ids)} records were changed.")
+    #         else:
+    #             raise Exception('Staging delete failed!')
+    #         return results
+    #     return wrapper_func
+
+    @classmethod
+    def insert_records(self,collection,records:dict):
+        """
+        Insert one or more records into the collection. Return the result Mongo returned.
+        """
+        results = collection.insert_many(records)
+        if results.acknowledged:
+            print(f'{collection.name} operation acknowledged!')
+            print(f"{len(results.inserted_ids)} records were inserted into {collection.name}.")
+        else:
+            raise Exception('Operation failed!')
+        return results
+
+    @classmethod
+    def delete_records(self,collection,filter:dict):
+        results = collection.delete_many(filter)
+        if results.acknowledged:
+            print(f'{collection.name} operation acknowledged!')
+            print(f"{results.deleted_count} records were deleted from {collection.name} .")
+        else:
+            raise Exception('Operation failed!')
+        return results
+    
+    @classmethod
+    def update_records(self):
+        pass
+
+    @classmethod
+    def select_records(self,collection,filter:dict={},nlimit:int=None)->dict:
+        """
+        select records from mongodb, using filter, limit to n records. If nlimit is None, then 
+        all the records will b
+
+        mongohelper.select_records(collection,filter={'主队': '广东'},nlimit=5)
+        """
+        if nlimit:
+            results = collection.find(filter).limit(nlimit)
+        else:
+            results = collection.find(filter)
+        return list(results)
 
 
     @classmethod
-    def update_games(self, scraped_schedule,coll_cbaGames,coll_cbaGamesStaging):
+    def insert_new_games(self, scraped_schedule, coll_cbaGames, coll_cbaGamesStaging):
         """
-        docstring
+        insert new games into coll_cbaGames
+        
         """
-        # clean up staging first
-        deletemany_result= coll_cbaGamesStaging.delete_many({})
-        if deletemany_result.acknowledged:
-            print('Staging delete acknowledged!')
-        else:
-            raise Exception('Staging delete failed!')
+        # delete all the records in staging first
+        print('----------clean up staging collection----------')
+        self.delete_records(coll_cbaGamesStaging,filter={})
 
         print(f"{coll_cbaGames.name} has {coll_cbaGames.count_documents({})} docs.")
         print(f"{coll_cbaGamesStaging.name} has {coll_cbaGamesStaging.count_documents({})} docs.")
         # insert into staging collection
-        coll_cbaGamesStaging.insert_many(scraped_schedule)
+        print('----------insert records into staging collection----------')
+        self.insert_records(coll_cbaGamesStaging,scraped_schedule)
         staging_gameids = []
-        for game in coll_cbaGamesStaging.find({},{'GameID_Sina':1}):
+        for game in self.select_records(coll_cbaGamesStaging,{}):
             staging_gameids.append(game['GameID_Sina'])
 
         # check what games should be inserted into production
+        print('----------checking what records to insert into production----------')
         game_dict = self.is_gameid_inDB(staging_gameids,coll_cbaGames)
         notindb = list(game_dict['NotInDB'])
         if not notindb:
@@ -123,17 +175,12 @@ class MongoDBHelper(DBHelper):
         docs_to_insert = list(coll_cbaGamesStaging.find({'GameID_Sina':{"$in":notindb}},{'_id':0}))
 
         # insert into production, delete staging
-        insertmany_result= coll_cbaGames.insert_many(docs_to_insert)
-        deletemany_result= coll_cbaGamesStaging.delete_many({})
-        if insertmany_result.acknowledged:
-            print('Production insert acknowledged!')
-            print(f"{len(insertmany_result.inserted_ids)} records were inserted into production.")
-        else:
-            raise Exception('Production insert failed!')
-        
-        if deletemany_result.acknowledged:
-            print('Staging delete acknowledged!')
-        else:
-            raise Exception('Staging delete failed!')
 
-        return insertmany_result
+        print('----------insert records into production collection----------')
+        insertmany_results= self.insert_records(coll_cbaGames,docs_to_insert)
+        self.delete_records(coll_cbaGamesStaging,filter={})
+
+        print(f"{coll_cbaGames.name} has {coll_cbaGames.count_documents({})} docs.")
+        print(f"{coll_cbaGamesStaging.name} has {coll_cbaGamesStaging.count_documents({})} docs.")
+
+        return insertmany_results

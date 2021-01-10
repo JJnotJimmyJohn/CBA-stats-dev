@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 import os
 from tqdm import tqdm
 import pymongo
+import pytz
 
 # TODO: use argparse
 DOTENV_PATH = '.'
@@ -149,141 +150,60 @@ class SinaScraper(Scraper):
         # 获取表格每行的html，存入list
         trs = tbody.find_all('tr')
         
-        # 分别提取每行的数据和link
-        rows = []
+        # 用于存储文本的list
+        text_list = []
+        # 用于存储链接的list
+        link_list = []
+
         for tr in trs:
-            row = {}
+            # 从每行中获取每一单元格的html
             tds = tr.find_all('td')
-            for td in zip(headers,tds):
-                header=td[0]
-                cell_content=td[1]
-                cell_text = str(cell_content.text).strip()
-                cell_link = None   
-                # 提取link
-                if cell_content.find('a',href=True):
-                        cell_link=cell_content.find('a',href=True)['href'].strip()
-                
-                # 如果不含link        
-                if not cell_link:
-                    row[header]=cell_text
-                    continue
-                else:
-                    # there is link
-                    # 并且表头和单元格内容不一样
-                    # 比如表头是”比分“，单元格内容是”116：131“，且有链接
-                    # 那么该cell的数据是{'比分':{'比分':'116:131','url':'https://xxx.xxx.xxx'}}
-                    if (cell_text!=header):
-                        cell={}
-                        cell[header]=cell_text
-                        cell['url']=cell_link
-                        row[header]=cell
-                        continue
-                    # 如果有link，但标题和单元格文本一样
-                    # 比如标题是“战报”，单元格文本也是“战报”，则没必要再列一遍“战报”
-                    else:
-                        row[header]=cell_link
-            rows.append(row)
+            for td in tds:
+                # 获取每单元格的纯文本内容
+                cell_text = str(td.text).strip()
+                # 单元格内若无链接则为空字符
+                cell_link = ''
+                if td.find('a', href=True):
+                    # 单元格内存在链接则保存
+                    cell_link = td.find('a', href=True)['href'].strip()
+                text_list.append(cell_text)
+                link_list.append(cell_link)
 
-        for row in rows:
-            row['赛季']=season
-            row['GameID_Sina']=re.findall('schedule[/]show[/](\d+)[/]',row['比分']['url'])[0]
-            # FIXME: fix gameID,主队ID，客队ID issue in stats calculation
-            row['主队']['TeamID_Sina']=re.findall('team[/]show[/](\d+)[/]',row['主队']['url'])[0]
-            row['客队']['TeamID_Sina']=re.findall('team[/]show[/](\d+)[/]',row['客队']['url'])[0]
-            row['GameStats']=[]
-            row['PlayByPlay']=[]
-        return rows
+        # 分别将文本和链接保存在两个dataframe中，最后再横向合并
+        # 链接的dataframe在column header后加上“_link“后缀
+        # 网页本身有空白列，此处不删除是考虑到未来可能会有新内容
+        text_list = np.reshape(text_list, [-1, len(headers)])
+        link_list = np.reshape(link_list, [-1, len(headers)])
+        df_schedule_text = pd.DataFrame(data=text_list, columns=headers)
+        df_schedule_link = pd.DataFrame(data=link_list, columns=[
+                                        header + '_link' for header in headers])
+
+        df_schedule_full = pd.merge(
+            df_schedule_text, df_schedule_link, left_index=True, right_index=True)
+
+        # FIXME: fix gameID,主队ID，客队ID issue in stats calculation
+        df_schedule_full['GameID_Sina'] = df_schedule_full['统计_link'].apply(
+            lambda x: re.findall('schedule[/]show[/](\d+)[/]', x)[0])
+        df_schedule_full['客队ID'] = df_schedule_full['客队'].apply(
+            lambda x: self.scraper_params['qteamid'][x])
+        df_schedule_full['主队ID'] = df_schedule_full['主队'].apply(
+            lambda x: self.scraper_params['qteamid'][x])
+        timezone_cba = pytz.timezone("Asia/Shanghai")
+        df_schedule_full['日期'] = df_schedule_full['日期'].apply(
+            lambda x: timezone_cba.localize(datetime.datetime.strptime(x,"%Y-%m-%d %H:%M")))
+        # TODO-done: add time zone information. maybe just add beijing timezone, Mongo will automatically
+        #       adjust to UTC;
+        # TODO: remember to convert UTC back to beijing time
+        # df_schedule_full['日期'] = datetime.datetime.strptime(x,"%Y-%m-%d %H:%M")
+        df_schedule_full['赛季'] = season
+        df_schedule_full['详细统计'] = None
+        df_schedule_full['比赛回合'] = None
+
+            # row['主队']['TeamID_Sina']=re.findall('team[/]show[/](\d+)[/]',row['主队']['url'])[0]
+            # row['客队']['TeamID_Sina']=re.findall('team[/]show[/](\d+)[/]',row['客队']['url'])[0]
+        return df_schedule_full.to_dict('records')
 
 
-    def update_schedule(self, season,collection,update_game_stats=False,update_playbyplay=False):
-        """
-        docstring
-        """
-        inserted_objs = []
-        print('start scraping')
-        scraped_schedule = sina_scraper.scrape_schedule(season=season, month='全部', team='全部')
-        print('scrape complete')
-        for game in scraped_schedule[:10]:
-            if is_record_found({'GameID_Sina':game['GameID_Sina']},collection):
-                continue
-            x+=1
-        pass
-
-    def query_schedule(self):
-        """
-        查询数据库中的schedule
-        """
-        return self.run_query_db("select * from CBA_Data.Schedules")
-
-    def query_stg_schedule(self):
-        """
-        查询数据库中的staging schedule(暂存)
-        """
-        return self.run_query_db("select * from CBA_Staging.Schedules")
-
-    def clean_staging_schedule(self):
-        """
-        清理刚scrape到CBA_Staging的table
-        """
-        # query to clean-up staging schedule
-        with self.create_db_engine(DB_USERNAME, DB_PWD, DB_ENDPOINT).connect() as connection:
-            with connection.begin():
-                # delete未开始，没比分的比赛
-                connection.execute("""
-                DELETE FROM CBA_Staging.Schedules
-                WHERE 比分='VS';
-                                """)
-
-                # delete已经scrape过的比赛
-                connection.execute("""
-                DELETE
-                FROM CBA_Staging.Schedules
-                WHERE CBA_Staging.Schedules.SinaGame_ID IN (
-                SELECT SinaGame_ID
-                FROM CBA_Data.Schedules
-                );
-
-                                """)
-
-                # delete重复比赛
-                connection.execute("""
-                DELETE
-                FROM CBA_Staging.Schedules
-                WHERE EXISTS (
-                SELECT 1
-                FROM  CBA_Data.Schedules prod
-                WHERE prod.主队=CBA_Staging.Schedules.主队
-                AND prod.主队=CBA_Staging.Schedules.主队
-                AND prod.日期=CBA_Staging.Schedules.日期
-                );
-                                """)
-
-                # scrape完的比赛insert到CBA_Data.Schedules
-                connection.execute("""
-                INSERT into CBA_Data.Schedules
-                SELECT *
-                FROM CBA_Staging.Schedules
-                WHERE SinaGame_ID not in (
-                SELECT SinaGame_ID
-                FROM CBA_Data.Schedules
-                ) and 
-                SinaGame_ID in (
-                SELECT SinaGame_ID
-                FROM CBA_Data.PlayerStatsPerGame
-                );
-                                """)
-                # 删除已scrape完的比赛，且已经insert到CBA_Data.Schedules的比赛
-                connection.execute("""
-                DELETE FROM  CBA_Staging.Schedules
-                WHERE SinaGame_ID in (
-                SELECT SinaGame_ID
-                FROM CBA_Data.Schedules
-                ) and 
-                SinaGame_ID in (
-                SELECT SinaGame_ID
-                FROM CBA_Data.PlayerStatsPerGame
-                );
-                                """)
 
     def split_made_attempt(self, scraped_stats):
         """
