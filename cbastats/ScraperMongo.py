@@ -196,8 +196,8 @@ class SinaScraper(Scraper):
         # TODO: remember to convert UTC back to beijing time
         # df_schedule_full['日期'] = datetime.datetime.strptime(x,"%Y-%m-%d %H:%M")
         df_schedule_full['赛季'] = season
-        df_schedule_full['详细统计'] = None
-        df_schedule_full['比赛回合'] = None
+        df_schedule_full['详细统计'] = ''
+        df_schedule_full['比赛回合'] = ''
 
             # row['主队']['TeamID_Sina']=re.findall('team[/]show[/](\d+)[/]',row['主队']['url'])[0]
             # row['客队']['TeamID_Sina']=re.findall('team[/]show[/](\d+)[/]',row['客队']['url'])[0]
@@ -233,13 +233,15 @@ class SinaScraper(Scraper):
         df_list = []
 
         progress_bar = tqdm(total=len(schedule_to_scrape))
-        for index, row in schedule_to_scrape.iterrows():
+        for row in schedule_to_scrape:
 
             # progress_bar.update(1)
 
             detail_url = row['统计_link']
+            # self.get_page_content(
+            # url=composed_url, encoding=self.encoding, parser=self.parser, headers=self.headers)
             page_content = self.get_page_content(
-                detail_url, encoding='GB2312', parser=PARSER, headers=HEADERS)
+                detail_url, encoding='GB2312', parser=self.parser, headers=self.headers)
 
             for table_num, table in enumerate(page_content.find_all("table")[:2]):
                 stats_headers = [th.text for th in table.find(
@@ -274,7 +276,8 @@ class SinaScraper(Scraper):
 
                 # team_df['号码'] = team_df['号码'].astype(str)
                 team_df['轮次'] = row['轮次']
-                team_df['SinaGame_ID'] = row['SinaGame_ID']
+                team_df['赛季'] = row['赛季']
+                team_df['GameID_Sina'] = row['GameID_Sina']
                 if table_num == 0:
                     # 主队table
                     team_df['球队ID'] = row['主队ID']
@@ -318,49 +321,7 @@ class SinaScraper(Scraper):
 
         return games_stats
 
-    def scrape_sina(self, season):
-        """
-        shorcut function to scrape from sina CBA
-        """
-        ##### scrape schedule #####
-        # compose the url you want to scrape
-        print('-'*40)
-        print('Composing url')
-        print('-'*40)
-        composed_url = self.compose_url(
-            leagueid=season, month='全部', teamid='全部')
-        # scrape the schedule
-        print('Scraping Schedule')
-        print('-'*40)
-        scraped_schedule = self.scrape_schedule(composed_url)
-        # insert/replace df into CBA_Staging.schedules
-        print('Insert Schedule to CBA_Staging.Schedules')
-        print('-'*40)
-        self.insert_df_into_db(
-            scraped_schedule, 'CBA_Staging', 'Schedules')
-        # clean up CBA_Staging.schedules
-        print('Cleaning up CBA_Staging.Schedules')
-        print('-'*40)
-        self.clean_staging_schedule()
-        # check CBA_Staging.schedules
-        print('Pulling schedule from CBA_Staging.Schedules')
-        print('-'*40)
-        schedule_to_scrape = self.query_stg_schedule()
-        # scrape stats for each game
-        print('Scraping game stats')
-        print('-'*40)
-        games_stats = self.scrape_games(schedule_to_scrape)
-        # append stats to CBA_data.
-        print('Append game stats to CBA_Data.PlayerStatsPerGame')
-        print('-'*40)
-        self.append_df_to_table(
-            games_stats, 'CBA_Data', 'PlayerStatsPerGame')
-        # clean up CBA_Staging.schedules
-        # there should't be anything left in CBA_Staging.Schedules at this point
-        print('Final clean up of the staging schedules')
-        print('-'*40)
-        self.clean_staging_schedule()
-
+    
 if __name__ == "__main__":
     print('executing')
     # sys.exit()

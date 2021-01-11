@@ -21,6 +21,7 @@ DOTENV_PATH = '.'
 MONGODB_PWD = None
 MONGODB_USERNAME = None
 MONGODB_ENDPOINT = None
+CURRENT_TIMEZONE = None
 
 env_path = Path(DOTENV_PATH) / '.env'
 if not (env_path.exists()):
@@ -31,6 +32,7 @@ load_dotenv(dotenv_path=env_path)
 MONGODB_PWD = os.getenv('MONGODB_PWD')
 MONGODB_USERNAME = os.getenv('MONGODB_USERNAME')
 MONGODB_ENDPOINT = os.getenv('MONGODB_ENDPOINT')
+CURRENT_TIMEZONE = os.getenv('CURRENT_TIMEZONE ')
 
 class DBHelper(object):
     """
@@ -131,17 +133,25 @@ class MongoDBHelper(DBHelper):
         pass
 
     @classmethod
-    def select_records(self,collection,filter:dict={},nlimit:int=None)->dict:
+    def select_records(self,collection,filter:dict={},field:dict={},nlimit:int=None)->dict:
         """
         select records from mongodb, using filter, limit to n records. If nlimit is None, then 
         all the records will b
 
-        mongohelper.select_records(collection,filter={'主队': '广东'},nlimit=5)
+        example:
+        >> mongohelper.select_records(collection,filter={'主队': '广东'},field={'GameID_Sina':1},nlimit=5)
+           This will select 5 documents from the db, where 主队=广东, also it only pulls out filed "GameID_Sina"
         """
-        if nlimit:
-            results = collection.find(filter).limit(nlimit)
+        if field:
+            if nlimit:
+                results = collection.find(filter,field).limit(nlimit)
+            else:
+                results = collection.find(filter,field)
         else:
-            results = collection.find(filter)
+            if nlimit:
+                results = collection.find(filter).limit(nlimit)
+            else:
+                results = collection.find(filter)
         return list(results)
 
 
