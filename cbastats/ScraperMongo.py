@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 import os
 from tqdm import tqdm
 import pymongo
+import unicodedata
 import pytz
 
 # TODO: use argparse
@@ -184,13 +185,13 @@ class SinaScraper(Scraper):
         # FIXME: fix gameID,主队ID，客队ID issue in stats calculation
         df_schedule_full['GameID_Sina'] = df_schedule_full['统计_link'].apply(
             lambda x: re.findall('schedule[/]show[/](\d+)[/]', x)[0])
-        df_schedule_full['客队ID'] = df_schedule_full['客队'].apply(
-            lambda x: self.scraper_params['qteamid'][x])
-        df_schedule_full['主队ID'] = df_schedule_full['主队'].apply(
-            lambda x: self.scraper_params['qteamid'][x])
+        df_schedule_full['客队ID'] = df_schedule_full['客队_link'].apply(
+            lambda x: re.findall('team[/]show[/](\d+)[/]', x)[0])
+        df_schedule_full['主队ID'] = df_schedule_full['主队_link'].apply(
+            lambda x: re.findall('team[/]show[/](\d+)[/]', x)[0])
         timezone_cba = pytz.timezone("Asia/Shanghai")
         df_schedule_full['日期'] = df_schedule_full['日期'].apply(
-            lambda x: timezone_cba.localize(datetime.datetime.strptime(x,"%Y-%m-%d %H:%M")))
+            lambda x: timezone_cba.localize(datetime.datetime.strptime(unicodedata.normalize("NFKD",x),"%Y-%m-%d\xa0%H:%M")))
         # TODO-done: add time zone information. maybe just add beijing timezone, Mongo will automatically
         #       adjust to UTC;
         # TODO: remember to convert UTC back to beijing time
