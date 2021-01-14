@@ -191,7 +191,7 @@ class SinaScraper(Scraper):
             lambda x: re.findall('team[/]show[/](\d+)[/]', x)[0])
         timezone_cba = pytz.timezone("Asia/Shanghai")
         df_schedule_full['日期'] = df_schedule_full['日期'].apply(
-            lambda x: timezone_cba.localize(datetime.datetime.strptime(unicodedata.normalize("NFKD",x),"%Y-%m-%d\xa0%H:%M")))
+            lambda x: timezone_cba.localize(datetime.datetime.strptime(unicodedata.normalize("NFKD",x),"%Y-%m-%d %H:%M")))
         # TODO-done: add time zone information. maybe just add beijing timezone, Mongo will automatically
         #       adjust to UTC;
         # TODO: remember to convert UTC back to beijing time
