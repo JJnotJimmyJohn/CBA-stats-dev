@@ -48,13 +48,13 @@ class Player(GameStats):
         本方球队和对方球队每场数据统计；一场比赛对应一行数据。
         """
         raw_stats = self.all_games_stats
-        raw_stats = raw_stats.groupby(['SinaGame_ID', '球队', '对手']).sum().reset_index()
+        raw_stats = raw_stats.groupby(['GameID_Sina', '球队', '对手']).sum().reset_index()
         raw_stats['场次'] = raw_stats['首发'] / 5
         raw_stats.drop(columns=['首发'], inplace=True)
         temp = raw_stats.add_prefix('对方')
         raw_stats = raw_stats.add_prefix('本方')
-        merged_tm_raw_stats = pd.merge(raw_stats, temp, left_on=['本方SinaGame_ID', '本方球队'], right_on=
-        ['对方SinaGame_ID', '对方对手'])
+        merged_tm_raw_stats = pd.merge(raw_stats, temp, left_on=['本方GameID_Sina', '本方球队'], right_on=
+        ['对方GameID_Sina', '对方对手'])
 
         if merged_tm_raw_stats.empty:
             print('No data. Please check name entered.')
@@ -68,8 +68,8 @@ class Player(GameStats):
         注意: 这里的"本方球队"是一个抽象概念，一如"对方球队"是所有比赛中对方球队数据的集合。
         截止2020年1月为止，赛季中球员并不会交易，所以可以狭义得理解为他的主队。
         """
-        raw_stats = pd.merge(self.plr_raw_stats, self.tm_raw_stats, left_on=['SinaGame_ID', '球队']
-                             , right_on=['本方SinaGame_ID', '本方球队'])
+        raw_stats = pd.merge(self.plr_raw_stats, self.tm_raw_stats, left_on=['GameID_Sina', '球队']
+                             , right_on=['本方GameID_Sina', '本方球队'])
         return raw_stats
 #######################################################################################################
     @property

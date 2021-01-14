@@ -276,6 +276,7 @@ class SinaScraper(Scraper):
 
                 # team_df['号码'] = team_df['号码'].astype(str)
                 team_df['轮次'] = row['轮次']
+                team_df['日期'] = row['日期']
                 team_df['赛季'] = row['赛季']
                 team_df['GameID_Sina'] = row['GameID_Sina']
                 if table_num == 0:
