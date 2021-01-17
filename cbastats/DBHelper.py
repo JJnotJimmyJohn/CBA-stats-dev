@@ -14,7 +14,7 @@ from pathlib import Path
 import pymongo
 from dotenv import load_dotenv
 from tqdm import tqdm
-
+# TODO: shortcut function to get detailed stats
 # TODO: use argparse
 DOTENV_PATH = '.'
 

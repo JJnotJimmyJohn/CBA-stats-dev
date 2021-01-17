@@ -1,3 +1,4 @@
+from logging import raiseExceptions
 import sys
 from pathlib import Path
 from types import ClassMethodDescriptorType
@@ -104,7 +105,17 @@ class SinaScraper(Scraper):
             param_dict[param['name']] = options
 
         return param_dict
-
+    
+    @staticmethod
+    def try_parsing_date(text):
+        for fmt in ('%Y-%m-%d %H:%M', '%Y-%m-%d'):
+            try:
+                return datetime.datetime.strptime(text, fmt)
+            except ValueError:
+                pass
+        raise ValueError('no valid date format found')
+    
+    
     def scrape_schedule(self, season=None, month='全部', team='全部'):
         """
         此函数用于爬取赛程和详细数据的链接
@@ -191,7 +202,7 @@ class SinaScraper(Scraper):
             lambda x: re.findall('team[/]show[/](\d+)[/]', x)[0])
         timezone_cba = pytz.timezone("Asia/Shanghai")
         df_schedule_full['日期'] = df_schedule_full['日期'].apply(
-            lambda x: timezone_cba.localize(datetime.datetime.strptime(unicodedata.normalize("NFKD",x),"%Y-%m-%d %H:%M")))
+            lambda x: timezone_cba.localize(self.try_parsing_date(unicodedata.normalize("NFKD",x))))
         # TODO-done: add time zone information. maybe just add beijing timezone, Mongo will automatically
         #       adjust to UTC;
         # TODO: remember to convert UTC back to beijing time
@@ -205,7 +216,7 @@ class SinaScraper(Scraper):
         return df_schedule_full.to_dict('records')
 
 
-
+    
     def split_made_attempt(self, scraped_stats):
         """
         用于删除投篮命中率,并把”2分中-投“分离成“2分中”，“2分投”两列
@@ -226,102 +237,122 @@ class SinaScraper(Scraper):
             scraped_stats.drop(columns=orig_col, inplace=True)
         return scraped_stats
 
-    def scrape_games(self, schedule_to_scrape):
+    #TODO-done: save failed scrape to another dictionary
+    #TODO: optimize how data was processed into dataframe
+    #TODO-done: empty string in 出场时间
+    #TODO-done: "." in 出场时间,consider change that to float instead of integer
+    #TODO-done: ":" in 出场时间
+    def scrape_games(self, schedule_to_scrape,interval_sec=0):
         """
         爬取schedule_to_scrape里的每一场比赛的详细比赛数据统计
         """
         assert len(schedule_to_scrape) > 0, "no game to scrape"
         df_list = []
-
-        progress_bar = tqdm(total=len(schedule_to_scrape))
+        bad_scrapes = []
+        progress_bar = tqdm(total=len(schedule_to_scrape),position=0,leave=True)
         for row in schedule_to_scrape:
 
             # progress_bar.update(1)
+            
+            try:
+                detail_url = row['统计_link']
+                # self.get_page_content(
+                # url=composed_url, encoding=self.encoding, parser=self.parser, headers=self.headers)
+                page_content = self.get_page_content(
+                    detail_url, encoding='GB2312', parser=self.parser, headers=self.headers)
 
-            detail_url = row['统计_link']
-            # self.get_page_content(
-            # url=composed_url, encoding=self.encoding, parser=self.parser, headers=self.headers)
-            page_content = self.get_page_content(
-                detail_url, encoding='GB2312', parser=self.parser, headers=self.headers)
+                for table_num, table in enumerate(page_content.find_all("table")[:2]):
+                    stats_headers = [th.text for th in table.find(
+                        'thead').find_all('th')]
+                    stats_headers.insert(0, '球员_link')
+                    # extract details
+                    all_trs = []
+                    for tr in table.find('tbody').find_all('tr'):
+                        # 抓取行(tr)
+                        all_tds = []
+                        # 在每一行中抓取每一格(td)
+                        for td in tr.find_all('td'):
+                            # get 球员link
+                            if td.find('a', href=True):
+                                all_tds.append(td.find('a', href=True)[
+                                            'href'].strip())
+                            all_tds.append(td.text.strip().replace(
+                                ' ', '').replace('\n', ''))
+                        all_trs.append(all_tds)
 
-            for table_num, table in enumerate(page_content.find_all("table")[:2]):
-                stats_headers = [th.text for th in table.find(
-                    'thead').find_all('th')]
-                stats_headers.insert(0, '球员_link')
-                # extract details
-                all_trs = []
-                for tr in table.find('tbody').find_all('tr'):
-                    # 抓取行(tr)
-                    all_tds = []
-                    # 在每一行中抓取每一格(td)
-                    for td in tr.find_all('td'):
-                        # get 球员link
-                        if td.find('a', href=True):
-                            all_tds.append(td.find('a', href=True)[
-                                           'href'].strip())
-                        all_tds.append(td.text.strip().replace(
-                            ' ', '').replace('\n', ''))
-                    all_trs.append(all_tds)
+                    team_df = pd.DataFrame(all_trs, columns=stats_headers)
 
-                team_df = pd.DataFrame(all_trs, columns=stats_headers)
+                    # 删除球队行
+                    team_df.drop(team_df.loc[team_df['号码']== '--'].index, inplace=True)
 
-                # 删除球队行
-                team_df.drop(team_df.loc[team_df['号码']
-                                         == '--'].index, inplace=True)
+                    # clean data frame
 
-                # clean data frame
+                    # get 球员ID
+                    # 暂不提取球员ID，有时新球员加入，新浪更新不及时，可能会没有球员ID，导致error
+                    # team_df['球员ID'] = team_df['球员_link'].apply(lambda x: int(re.findall('show[/](\d+)[/]', x)[0]))
 
-                # get 球员ID
-                # 暂不提取球员ID，有时新球员加入，新浪更新不及时，可能会没有球员ID，导致error
-                # team_df['球员ID'] = team_df['球员_link'].apply(lambda x: int(re.findall('show[/](\d+)[/]', x)[0]))
+                    # team_df['号码'] = team_df['号码'].astype(str)
+                    team_df['轮次'] = row['轮次']
+                    team_df['日期'] = row['日期']
+                    team_df['赛季'] = row['赛季']
+                    team_df['出场时间'] = team_df['出场时间'].apply(lambda x: re.sub(':', '.', x))
+                    team_df['出场时间'] = team_df['出场时间'].apply(lambda x: re.sub('、', '.', x))
+                    team_df['出场时间'] = team_df['出场时间'].apply(lambda x: '0' if x=='' else x)
 
-                # team_df['号码'] = team_df['号码'].astype(str)
-                team_df['轮次'] = row['轮次']
-                team_df['日期'] = row['日期']
-                team_df['赛季'] = row['赛季']
-                team_df['GameID_Sina'] = row['GameID_Sina']
-                if table_num == 0:
-                    # 主队table
-                    team_df['球队ID'] = row['主队ID']
-                    team_df['对手ID'] = row['客队ID']
-                    team_df['球队'] = row['主队']
-                    team_df['对手'] = row['客队']
-                else:
-                    # 客队table
-                    team_df['球队ID'] = row['客队ID']
-                    team_df['对手ID'] = row['主队ID']
-                    team_df['球队'] = row['客队']
-                    team_df['对手'] = row['主队']
+                    team_df['GameID_Sina'] = row['GameID_Sina']
 
-                team_df['地点'] = row['地点']
+                    if table_num == 0:
+                        # 主队table
+                        team_df['球队ID'] = row['主队ID']
+                        team_df['对手ID'] = row['客队ID']
+                        team_df['球队'] = row['主队']
+                        team_df['对手'] = row['客队']
+                    else:
+                        # 客队table
+                        team_df['球队ID'] = row['客队ID']
+                        team_df['对手ID'] = row['主队ID']
+                        team_df['球队'] = row['客队']
+                        team_df['对手'] = row['主队']
 
-                df_list.append(team_df)
+                    team_df['地点'] = row['地点']
 
+                    team_df['出场时间']=pd.to_numeric(team_df['出场时间'])
+                    df_list.append(team_df)
+            except:
+                bad_scrapes.append(row)
+                continue
+
+            
             progress_bar.update(1)
-            time.sleep(np.random.rand() * 4)
+            time.sleep(np.random.rand() * interval_sec)
 
         progress_bar.close()
         games_stats = pd.concat(df_list, ignore_index=True)
-        games_stats = self.split_made_attempt(games_stats)
-        games_stats[['出场时间', '进攻篮板', '防守篮板', '助攻', '犯规', '抢断',
-                     '失误', '盖帽', '扣篮', '被侵', '2分中', '2分投',
-                     '3分中', '3分投', '罚球中',
-                     '罚球投']] = games_stats[['出场时间', '进攻篮板', '防守篮板', '助攻', '犯规', '抢断',
-                                            '失误', '盖帽', '扣篮', '被侵', '2分中', '2分投',
-                                            '3分中', '3分投', '罚球中', '罚球投']].astype(int)
-        # 计算得分
-        games_stats['得分'] = games_stats['2分中']*2 + \
-            games_stats['3分中']*3+games_stats['罚球中']
-        games_stats['号码'] = games_stats['号码'].astype(str)
-        # games_stats['球队ID'] = games_stats['球队ID'].astype(str)
-        # games_stats['对手ID'] = games_stats['对手ID'].astype(str)
-        games_stats['首发'] = games_stats['首发'].apply(
-            lambda x: re.sub('是', '1', x))
-        games_stats['首发'] = games_stats['首发'].apply(
-            lambda x: re.sub('否', '0', x))
-        games_stats['首发'] = games_stats['首发'].astype(int)
-
-        return games_stats
+        try:
+            games_stats = self.split_made_attempt(games_stats)
+            games_stats[['出场时间', '进攻篮板', '防守篮板', '助攻', '犯规', '抢断',
+                        '失误', '盖帽', '扣篮', '被侵', '2分中', '2分投',
+                        '3分中', '3分投', '罚球中',
+                        '罚球投']] = games_stats[['出场时间', '进攻篮板', '防守篮板', '助攻', '犯规', '抢断',
+                                                '失误', '盖帽', '扣篮', '被侵', '2分中', '2分投',
+                                                '3分中', '3分投', '罚球中', '罚球投']].astype(int)
+            #FIXME: check stats calculation see if this will break stats calculation
+            games_stats['篮板'] = games_stats['进攻篮板']+games_stats['防守篮板']
+            # 计算得分
+            games_stats['得分'] = games_stats['2分中']*2 + \
+                games_stats['3分中']*3+games_stats['罚球中']
+            games_stats['号码'] = games_stats['号码'].astype(str)
+            # games_stats['球队ID'] = games_stats['球队ID'].astype(str)
+            # games_stats['对手ID'] = games_stats['对手ID'].astype(str)
+            games_stats['首发'] = games_stats['首发'].apply(
+                lambda x: re.sub('是', '1', x))
+            games_stats['首发'] = games_stats['首发'].apply(
+                lambda x: re.sub('否', '0', x))
+            games_stats['首发'] = games_stats['首发'].astype(int)
+        except:
+            raise Exception('DataFrame Conversion Error')
+        finally:
+            return games_stats, bad_scrapes
 
     
 if __name__ == "__main__":
