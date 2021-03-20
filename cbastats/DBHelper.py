@@ -9,30 +9,32 @@
 # import time
 # import numpy as np
 from logging import raiseExceptions
+import logging
 import os
 from pathlib import Path
 import pymongo
 from dotenv import load_dotenv
 from tqdm import tqdm
+import sys
 # TODO: shortcut function to get detailed stats
 # TODO: use argparse
-DOTENV_PATH = '.'
+# DOTENV_PATH = '.'
 
-MONGODB_PWD = None
-MONGODB_USERNAME = None
-MONGODB_ENDPOINT = None
-CURRENT_TIMEZONE = None
+# MONGODB_PWD = None
+# MONGODB_USERNAME = None
+# MONGODB_ENDPOINT = None
+# CURRENT_TIMEZONE = None
 
-env_path = Path(DOTENV_PATH) / '.env'
-if not (env_path.exists()):
-    print('.env file is missing.')
-    sys.exit()
-load_dotenv(dotenv_path=env_path)
+# env_path = Path(DOTENV_PATH) / '.env'
+# if not (env_path.exists()):
+#     print('.env file is missing.')
+#     sys.exit()
+# load_dotenv(dotenv_path=env_path)
 
-MONGODB_PWD = os.getenv('MONGODB_PWD')
-MONGODB_USERNAME = os.getenv('MONGODB_USERNAME')
-MONGODB_ENDPOINT = os.getenv('MONGODB_ENDPOINT')
-CURRENT_TIMEZONE = os.getenv('CURRENT_TIMEZONE ')
+# MONGODB_PWD = os.getenv('MONGODB_PWD')
+# MONGODB_USERNAME = os.getenv('MONGODB_USERNAME')
+# MONGODB_ENDPOINT = os.getenv('MONGODB_ENDPOINT')
+# CURRENT_TIMEZONE = os.getenv('CURRENT_TIMEZONE ')
 
 class DBHelper(object):
     """
@@ -83,14 +85,14 @@ class MongoDBHelper(DBHelper):
         return client
 
     @classmethod
-    def is_gameid_inDB(self, gameids:list,collection)->dict:
+    def is_gameid_inDB(self, gameids:list,collection,id_col_name="GameID_Sina")->dict:
         """
         Take a list of gameIDs, return a dictionary of found gameids and missing gameids in a mongoDB collection
         """
-        foundDocs=list(collection.find({ 'GameID_Sina': { "$in": gameids} },{'GameID_Sina':1})) 
+        foundDocs=list(collection.find({ id_col_name: { "$in": gameids} },{id_col_name:1})) 
         foundIDs=[]
         for foundDoc in foundDocs: 
-            foundIDs.append(foundDoc['GameID_Sina'])
+            foundIDs.append(foundDoc[id_col_name])
         
         return {'InDB':list(set(foundIDs)&set(gameids)),'NotInDB':list(set(foundIDs)^set(gameids))}
     # TODO: use decorator
@@ -130,7 +132,7 @@ class MongoDBHelper(DBHelper):
     
     @classmethod
     def update_records(self):
-        pass
+        raise NotImplementedError
 
     @classmethod
     def select_records(self,collection,filter:dict={},field:dict={},nlimit:int=None)->dict:
@@ -156,41 +158,42 @@ class MongoDBHelper(DBHelper):
 
 
     @classmethod
-    def insert_new_games(self, scraped_schedule, coll_cbaGames, coll_cbaGamesStaging):
+    def insert_new_games(self, scraped_schedule, coll_productionGames, coll_stagingGames,id_col_name="GameID_Sina"):
         """
-        insert new games into coll_cbaGames
+        insert new games into collproductionaGames
         
         """
+        logger = logging.getLogger()
         # delete all the records in staging first
-        print('----------clean up staging collection----------')
-        self.delete_records(coll_cbaGamesStaging,filter={})
+        logger.info('----------delete all records staging collection----------')
+        self.delete_records(coll_stagingGames,filter={})
 
-        print(f"{coll_cbaGames.name} has {coll_cbaGames.count_documents({})} docs.")
-        print(f"{coll_cbaGamesStaging.name} has {coll_cbaGamesStaging.count_documents({})} docs.")
+        print(f"{coll_productionGames.name} has {coll_productionGames.count_documents({})} docs.")
+        print(f"{coll_stagingGames.name} has {coll_stagingGames.count_documents({})} docs.")
         # insert into staging collection
         print('----------insert records into staging collection----------')
-        self.insert_records(coll_cbaGamesStaging,scraped_schedule)
+        self.insert_records(coll_stagingGames,scraped_schedule)
         staging_gameids = []
-        for game in self.select_records(coll_cbaGamesStaging,{}):
-            staging_gameids.append(game['GameID_Sina'])
+        for game in self.select_records(coll_stagingGames,{}):
+            staging_gameids.append(game[id_col_name])
 
         # check what games should be inserted into production
         print('----------checking what records to insert into production----------')
-        game_dict = self.is_gameid_inDB(staging_gameids,coll_cbaGames)
+        game_dict = self.is_gameid_inDB(staging_gameids,coll_productionGames,id_col_name="game_id")
         notindb = list(game_dict['NotInDB'])
         if not notindb:
             print('Production is up-to-date')
-            print(f"{coll_cbaGames.name} has {coll_cbaGames.count_documents({})} docs.")
+            print(f"{coll_productionGames.name} has {coll_productionGames.count_documents({})} docs.")
             return None
-        docs_to_insert = list(coll_cbaGamesStaging.find({'GameID_Sina':{"$in":notindb}},{'_id':0}))
+        docs_to_insert = list(coll_stagingGames.find({id_col_name:{"$in":notindb}},{'_id':0}))
 
         # insert into production, delete staging
 
         print('----------insert records into production collection----------')
-        insertmany_results= self.insert_records(coll_cbaGames,docs_to_insert)
-        self.delete_records(coll_cbaGamesStaging,filter={})
+        insertmany_results= self.insert_records(coll_productionGames,docs_to_insert)
+        self.delete_records(coll_stagingGames,filter={})
 
-        print(f"{coll_cbaGames.name} has {coll_cbaGames.count_documents({})} docs.")
-        print(f"{coll_cbaGamesStaging.name} has {coll_cbaGamesStaging.count_documents({})} docs.")
+        print(f"{coll_productionGames.name} has {coll_productionGames.count_documents({})} docs.")
+        print(f"{coll_stagingGames.name} has {coll_stagingGames.count_documents({})} docs.")
 
         return insertmany_results
