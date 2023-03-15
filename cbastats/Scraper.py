@@ -56,6 +56,7 @@ class Scraper(object):
     def get_page_content(cls, url, encoding, parser, headers):
         session = requests.Session()
         base_url = url
+        time.sleep(5)
         response = session.get(base_url, headers=headers)
         response.encoding = encoding
         page_content = BeautifulSoup(response.content, parser)
