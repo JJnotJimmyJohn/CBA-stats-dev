@@ -78,7 +78,7 @@ class MongoDBHelper(DBHelper):
         """
         try:
             client =pymongo.MongoClient(f'mongodb+srv://{user_name}:{passcode}@{endpoint}')
-        except:
+        except ValueError:
             print("connection failed!")
             return None
         print("existing database " + str(client.list_database_names()))
