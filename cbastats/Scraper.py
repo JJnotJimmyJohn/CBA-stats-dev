@@ -1,9 +1,9 @@
 import sys
 from pathlib import Path
 from types import ClassMethodDescriptorType
-from sqlalchemy import create_engine
-from sqlalchemy.exc import ResourceClosedError
-import pymysql
+# from sqlalchemy import create_engine
+# from sqlalchemy.exc import ResourceClosedError
+# import pymysql
 import requests
 from bs4 import BeautifulSoup
 # import lxml.html as lh
@@ -28,20 +28,20 @@ SINA_SCHEDULE_BASE_URL = "http://cba.sports.sina.com.cn/cba/schedule/all/"
 
 # TODO: what if user doesn't need DB access? .env necessary?
 # secret variables should be saved in .env files
-DB_USERNAME = None
-DB_PWD = None
-DB_ENDPOINT = None
+# DB_USERNAME = None
+# DB_PWD = None
+# DB_ENDPOINT = None
 
 
-env_path = Path(DOTENV_PATH) / '.env'
-if not (env_path.exists()):
-    print('.env file is missing.')
-    sys.exit()
-load_dotenv(dotenv_path=env_path)
+# env_path = Path(DOTENV_PATH) / '.env'
+# if not (env_path.exists()):
+#     print('.env file is missing.')
+#     sys.exit()
+# load_dotenv(dotenv_path=env_path)
 
-DB_USERNAME = os.getenv('CBADB_USERNAME')
-DB_PWD = os.getenv('CBADB_PWD')
-DB_ENDPOINT = os.getenv('CBADB_ENDPOINT')
+# DB_USERNAME = os.getenv('CBADB_USERNAME')
+# DB_PWD = os.getenv('CBADB_PWD')
+# DB_ENDPOINT = os.getenv('CBADB_ENDPOINT')
 
 
 class Scraper(object):

@@ -72,12 +72,13 @@ class MongoDBHelper(DBHelper):
         pass
     
     @classmethod
-    def create_connection(self, user_name, passcode, endpoint):
+    def create_connection(self, protocol, user_name, passcode, endpoint):
         """
         创建一个Mongo client, connect to the cluster 
         """
+
         try:
-            client =pymongo.MongoClient(f'mongodb+srv://{user_name}:{passcode}@{endpoint}')
+            client =pymongo.MongoClient(f'{protocol}{user_name}:{passcode}@{endpoint}')
         except ValueError:
             print("connection failed!")
             return None
